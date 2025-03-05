@@ -13,7 +13,7 @@ const {
   getBookValidator,
   updateBookValidator,
   deleteBookValidator,
-} = require("../../Validators/BookValidators");
+} = require("../../Validators/bookValidators");
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
 const {
