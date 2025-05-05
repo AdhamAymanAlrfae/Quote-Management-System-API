@@ -1,47 +1,77 @@
 const { Router } = require("express");
 const {
-  createQuote,
   getOneQuote,
   updateQuote,
   deleteQuote,
   getAllQuotes,
+  approveQuote,
 } = require("../../Controllers/quoteController");
 
 const {
-  createQuoteValidator,
   getQuoteValidator,
   updateQuoteValidator,
   deleteQuoteValidator,
 } = require("../../Validators/quoteValidators");
+
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
 const {
-  handelSubmittedBy,
-  adminHandelStatus,
-  statusFilter,
-} = require("../../Middlewares/logeUserData");
+  setAdminApprovedStatus,
+} = require("../../Middlewares/contextInjectors");
+
+const {
+  canModifyResource,
+} = require("../../Middlewares/authorizationMiddlewares");
+const Quote = require("../../Models/quoteModel");
+
+const ROLE = require("../../Data/Roles");
 
 const router = Router();
-router.use(verifyJWT, allowTo("admin"));
+
+// Apply JWT verification globally
+router.use(verifyJWT);
+
+// Routes for creating and fetching all quotes
 router
   .route("/")
-  .post(handelSubmittedBy, adminHandelStatus, createQuoteValidator, createQuote)
-  .get(getAllQuotes);
+  .get(
+    allowTo(ROLE.ADMIN, ROLE.CONTRIBUTOR), // Allow admins, contributors
+    getAllQuotes
+  );
 
+// Routes for fetching, updating, and deleting a specific quote by ID
 router
   .route("/:id")
-  .get(getQuoteValidator, getOneQuote)
+  .get(
+    allowTo(ROLE.ADMIN, ROLE.CONTRIBUTOR), // Allow admins, contributors
+    getQuoteValidator,
+    getOneQuote
+  )
   .put(
-    verifyJWT,
-    allowTo("admin"),
-    handelSubmittedBy,
-    updateQuoteValidator,
+    [
+      allowTo(ROLE.ADMIN, ROLE.CONTRIBUTOR), // Restrict updates to admins and contributors
+      updateQuoteValidator,
+      canModifyResource(Quote, "Quote", "update"), // Authorization for updates
+    ],
     updateQuote
   )
-  .delete(deleteQuoteValidator, deleteQuote);
+  .delete(
+    [
+      allowTo(ROLE.ADMIN), // Restrict deletions to admins only
+      deleteQuoteValidator,
+      canModifyResource(Quote, "Quote", "delete"), // Authorization for deletions
+    ],
+    deleteQuote
+  );
 
-router
-  .route("/:id/approve")
-  .put(updateQuoteValidator, adminHandelStatus, updateQuote);
+// Route for approving a quote by ID
+router.route("/:id/approve").put(
+  [
+    allowTo(ROLE.ADMIN, ROLE.CONTRIBUTOR), // Restrict approval to admins and contributors only
+    updateQuoteValidator,
+    setAdminApprovedStatus,
+  ],
+  approveQuote
+);
 
 module.exports = router;

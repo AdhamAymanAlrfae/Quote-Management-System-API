@@ -1,4 +1,4 @@
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 const CustomError = require("../Utils/CustomError");
 
 exports.allowTo = (...roles) =>

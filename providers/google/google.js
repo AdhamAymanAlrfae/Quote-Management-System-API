@@ -8,6 +8,7 @@ const {
 const {
   generateUniqueUsername,
 } = require("../../Utils/generateUniqueUsername");
+const logger = require("../../Utils/logger");
 
 passport.use(
   new Strategy(
@@ -21,6 +22,7 @@ passport.use(
       try {
         const email =
           profile._json?.email || profile.emails?.[0]?.value || null;
+
         if (!email) {
           return done(
             new Error("Email is required but not provided by Google."),
@@ -29,13 +31,17 @@ passport.use(
         }
 
         let user = await User.findOne({ email });
+
         if (user) {
-          if (user.id !== profile.id) {
-            user.providerId = profile.id;
-            user.provider = "google";
-            await user.save();
+          //  Prevent account conflict
+          if (user.provider !== "google" || user.providerId !== profile.id) {
+            return done(
+              new Error("This email is already associated with an account."),
+              null
+            );
           }
         } else {
+          //  Create new user
           const baseUsername = profile.displayName || "user";
           const uniqueUsername = await generateUniqueUsername(
             baseUsername,
@@ -46,19 +52,27 @@ passport.use(
             providerId: profile.id,
             username: uniqueUsername,
             email,
-            provider: profile.provider,
+            provider: "google",
           });
-          await user.save();
         }
-        const refreshToken = jwtRefreshTokenGenerator({ userId: user._id });
-        const accessToken = jwtAccessTokenGenerator({
+
+        // ✅ Generate JWT tokens
+        const refreshTokenJWT = jwtRefreshTokenGenerator({ userId: user._id });
+        const accessTokenJWT = jwtAccessTokenGenerator({
           userId: user._id,
           username: user.username,
           role: user.role,
         });
 
-        return done(null, { user, accessToken, refreshToken });
+        logger.info(`User ${user.email} authenticated via Google.`);
+
+        return done(null, {
+          user,
+          accessToken: accessTokenJWT,
+          refreshToken: refreshTokenJWT,
+        });
       } catch (error) {
+        logger.error("Google authentication failed:", error);
         return done(error, null);
       }
     }

@@ -4,8 +4,9 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const hpp = require("hpp");
-const xss = require("xss-clean")
+const xss = require("xss-clean");
 const mongoSanitize = require("express-mongo-sanitize");
+const compression = require("compression");
 
 const databaseConnect = require("./Config/database");
 const CustomError = require("./Utils/CustomError");
@@ -13,7 +14,7 @@ const globalErrorMiddlewares = require("./Middlewares/globalErrorMiddlewares");
 const mainRoutesHandler = require("./Routes/index");
 const passport = require("passport");
 const Logger = require("./Utils/logger");
-const {globalLimiter} = require("./Utils/rateLimiter")
+const { globalLimiter } = require("./Middlewares/rateLimiter");
 require("./providers/discord/discord");
 require("./providers/github/github");
 require("./providers/google/google");
@@ -28,16 +29,16 @@ process.on("uncaughtException", (err) => {
 const app = express();
 
 app.use(helmet());
-
 app.use(
   cors({
     origin: "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 app.use(hpp({ whitelist: ["fields", "tags"] }));
-
 
 databaseConnect();
 
@@ -59,7 +60,7 @@ app.use((req, res, next) => {
 });
 
 /** Apply Global Rate Limiter */
-app.use(globalLimiter); 
+app.use(globalLimiter);
 
 /**  Body Parsers (After Content-Type Validation) */
 app.use(express.json({ limit: "10kb" }));
@@ -67,8 +68,9 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 app.use(passport.initialize());
 
-app.use(xss()); 
+app.use(xss());
 app.use(mongoSanitize());
+app.use(compression());
 
 /**  Routes */
 mainRoutesHandler(app);

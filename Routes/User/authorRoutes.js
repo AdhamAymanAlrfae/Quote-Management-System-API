@@ -10,11 +10,12 @@ const {
   getAuthorValidator,
 } = require("../../Validators/authorValidators");
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
-const { allowTo } = require("../../Middlewares/allowTo");
 const {
   handelSubmittedBy,
   statusFilter,
-} = require("../../Middlewares/logeUserData");
+  handleStatusByRole,
+} = require("../../Middlewares/contextInjectors");
+
 
 const router = Router();
 
@@ -22,12 +23,13 @@ router
   .route("/")
   .post(
     verifyJWT,
-    allowTo("user"),
     handelSubmittedBy,
+    handleStatusByRole,
     createAuthorValidator,
     createAuthor
   )
-  .get( statusFilter, getAllAuthors);
-router.route("/:id").get(getAuthorValidator, getOneAuthor);
+  .get(statusFilter, getAllAuthors);
+  
+router.route("/:id").get(statusFilter, getAuthorValidator, getOneAuthor);
 
 module.exports = router;

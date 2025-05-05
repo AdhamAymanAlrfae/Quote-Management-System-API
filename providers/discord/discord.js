@@ -8,6 +8,7 @@ const {
 const {
   generateUniqueUsername,
 } = require("../../Utils/generateUniqueUsername");
+const logger = require("../../Utils/logger");
 
 passport.use(
   new Strategy(
@@ -26,43 +27,48 @@ passport.use(
             null
           );
         }
-        
-        let user = await User.findOne({ email });
-        
-        
-        if (user) {
-          if (user.id !== profile.id) {
-            
 
-            user.providerId = profile.id;
-            user.provider = "discord";
-            await user.save();
-            
+        let user = await User.findOne({ email });
+
+        if (user) {
+          if (user.provider !== "discord" || user.providerId !== profile.id) {
+            return done(
+              new Error("This email is already associated with an account."),
+              null
+            );
           }
         } else {
-          const baseUsername = profile.displayName || "user";
+          // Create new user
+          const baseUsername = profile.username || "user"; // `displayName` is not standard on Discord
           const uniqueUsername = await generateUniqueUsername(
             baseUsername,
             User
           );
-
           user = await User.create({
             providerId: profile.id,
             username: uniqueUsername,
             email,
-            provider: profile.provider,
+            provider: "discord",
           });
-          await user.save();
         }
-        const refreshToken = jwtRefreshTokenGenerator({ userId: user._id });
-        const accessToken = jwtAccessTokenGenerator({
+
+        // ✅ Generate tokens
+        const refreshTokenJWT = jwtRefreshTokenGenerator({ userId: user._id });
+        const accessTokenJWT = jwtAccessTokenGenerator({
           userId: user._id,
           username: user.username,
           role: user.role,
         });
 
-        return done(null, { user, accessToken, refreshToken });
+        logger.info(`User ${user.email} authenticated via Discord.`);
+
+        return done(null, {
+          user,
+          accessToken: accessTokenJWT,
+          refreshToken: refreshTokenJWT,
+        });
       } catch (error) {
+        logger.error("Discord authentication failed:", error);
         return done(error, null);
       }
     }

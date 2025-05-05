@@ -73,7 +73,7 @@ exports.updateBoardValidator = [
       const board = await Board.findOne({ _id: value, user: req.user.id });
       if (!board) {
         throw new customError(
-          "Board not found or you do not have permission.",
+          "Board not found.",
           404
         );
       }

@@ -1,6 +1,6 @@
 const Board = require("../Models/boardModel");
 const Quote = require("../Models/quoteModel");
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 const CustomError = require("../Utils/CustomError");
 
 const {
@@ -58,7 +58,8 @@ exports.addQuotesToBoard = AsyncErrorHandler(async (req, res, next) => {
 });
 
 exports.removeQuoteFromBoard = AsyncErrorHandler(async (req, res, next) => {
-  const { boardId, quoteId } = req.params;
+  const { boardId } = req.params;
+  const { quoteId } = req.body;
 
   // Find the board
   const board = await Board.findOne({ _id: boardId, user: req.user.id }).exec();

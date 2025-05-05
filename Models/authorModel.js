@@ -16,7 +16,7 @@ const authorSchema = new mongoose.Schema(
     avatar: {
       type: String,
     },
-    jop: {
+    job: {
       type: String,
     },
     bio: {
@@ -39,7 +39,7 @@ const authorSchema = new mongoose.Schema(
     ],
     dateOfBirth: {
       type: Date,
-      required: [true, "The Date of Birth is required"],
+      
     },
     dateOfDeath: {
       type: Date,

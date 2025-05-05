@@ -8,6 +8,7 @@ const {
 const {
   generateUniqueUsername,
 } = require("../../Utils/generateUniqueUsername");
+const logger = require("../../Utils/logger");
 
 passport.use(
   new Strategy(
@@ -22,40 +23,56 @@ passport.use(
         const email = profile.emails?.[0]?.value || null;
         if (!email) {
           return done(
-            new Error("Email is required but not provided by Github."),
+            new Error("Email is required but not provided by GitHub."),
             null
           );
         }
+
         let user = await User.findOne({ email });
+
         if (user) {
-          if (user.id !== profile.id) {
-            user.providerId = profile.id;
-            user.provider = "github";
-            await user.save();
+          // ✅ Check if this user was originally registered using GitHub
+          if (user.provider !== "github" || user.providerId !== profile.id) {
+            return done(
+              new Error("This email is already associated with an account."),
+
+              null
+            );
           }
+          // ✅ Proceed with existing GitHub user
         } else {
-          const baseUsername = profile.displayName || "user";
+          // 🆕 Create new user
+          const baseUsername = profile.username || "user"; // `displayName` is often undefined in GitHub profile
           const uniqueUsername = await generateUniqueUsername(
             baseUsername,
             User
           );
+
           user = await User.create({
             providerId: profile.id,
             username: uniqueUsername,
             email,
-            provider: profile.provider,
+            provider: "github",
           });
-          await user.save();
         }
-        const refreshToken = jwtRefreshTokenGenerator({ userId: user._id });
-        const accessToken = jwtAccessTokenGenerator({
+
+        // ✅ Generate tokens
+        const refreshTokenJWT = jwtRefreshTokenGenerator({ userId: user._id });
+        const accessTokenJWT = jwtAccessTokenGenerator({
           userId: user._id,
           username: user.username,
           role: user.role,
         });
 
-        return done(null, { user, accessToken, refreshToken });
+        logger.info(`User ${user.email} authenticated via GitHub.`);
+
+        return done(null, {
+          user,
+          accessToken: accessTokenJWT,
+          refreshToken: refreshTokenJWT,
+        });
       } catch (error) {
+        logger.error("GitHub authentication failed:", error);
         return done(error, null);
       }
     }

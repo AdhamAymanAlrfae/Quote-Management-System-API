@@ -15,7 +15,8 @@ exports.createAuthorValidator = [
       req.body.slug = slugify(value);
       return true;
     }),
-  body("jop").optional().trim(),
+  body("job").optional().trim(),
+  body("submittedBy").notEmpty().withMessage("submittedBy is required"),
   body("bio").optional().trim(),
   body("nationality").optional().trim(),
   body("books")
@@ -38,8 +39,7 @@ exports.createAuthorValidator = [
       return true;
     }),
   body("dateOfBirth")
-    .notEmpty()
-    .withMessage("Date of Birth is required")
+    .optional()
     .isDate()
     .withMessage("Invalid date format"),
   body("dateOfDeath").optional().isDate().withMessage("Invalid date format"),
@@ -71,7 +71,7 @@ exports.updateAuthorValidator = [
       req.body.slug = slugify(value);
       return true;
     }),
-  body("jop").optional().trim(),
+  body("job").optional().trim(),
   body("bio").optional().trim(),
   body("nationality").optional().trim(),
   body("books")

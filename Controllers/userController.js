@@ -1,13 +1,7 @@
 const User = require("../Models/userModel");
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 
-const {
-  createDoc,
-  getOneDoc,
-  getAllDoc,
-  deleteDoc,
-} = require("./index");
-
+const { createDoc, getOneDoc, getAllDoc, deleteDoc } = require("./index");
 
 exports.createUser = createDoc(User);
 
@@ -33,7 +27,6 @@ exports.updateUser = AsyncErrorHandler(async (req, res, next) => {
   res.status(200).json({ status: "success", data: document });
 });
 
-
 exports.changePassword = AsyncErrorHandler(async (req, res, next) => {
   const document = await User.findByIdAndUpdate(
     req.params.id,
@@ -52,15 +45,13 @@ exports.changePassword = AsyncErrorHandler(async (req, res, next) => {
     );
   }
   await document.save();
-  res.clearCookie("jwt", { httpOnly: true, sameSite: "None", secure: true });
+  res.clearCookie("accessToken");
   res.status(200).json({ status: "success", data: document });
 });
 
 exports.deleteUser = deleteDoc(User);
 
-
 exports.updateLogeUser = AsyncErrorHandler(async (req, res, next) => {
- 
   const document = await User.findByIdAndUpdate(
     req.params.id,
     {

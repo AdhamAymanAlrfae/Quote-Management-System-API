@@ -1,52 +1,77 @@
 const { Router } = require("express");
+
 const {
-  createAuthor,
   getOneAuthor,
   updateAuthor,
   deleteAuthor,
   getAllAuthors,
 } = require("../../Controllers/authorController");
 
-const {
-  createAuthorValidator,
+const { 
   getAuthorValidator,
   updateAuthorValidator,
   deleteAuthorValidator,
 } = require("../../Validators/authorValidators");
+
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
 const {
-  handelSubmittedBy,
-  adminHandelStatus,
-  statusFilter,
-} = require("../../Middlewares/logeUserData");
+  setAdminApprovedStatus,
+} = require("../../Middlewares/contextInjectors");
+
+const {
+  canModifyResource,
+} = require("../../Middlewares/authorizationMiddlewares");
+const Author = require("../../Models/authorModel");
+
+const ROLES = require("../../Data/Roles");
 
 const router = Router();
-router.use(verifyJWT, allowTo("admin"));
+
+// Apply JWT verification globally
+router.use(verifyJWT);
+
+// Routes for fetching all authors
 router
   .route("/")
-  .post(
-    handelSubmittedBy,
-    adminHandelStatus,
-    createAuthorValidator,
-    createAuthor
-  )
-  .get(getAllAuthors);
+  .get(
+    allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), 
+    getAllAuthors
+  );
 
+// Routes for fetching, updating, and deleting a specific author by ID
 router
   .route("/:id")
-  .get(getAuthorValidator, getOneAuthor)
+  .get(
+    allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR),
+    getAuthorValidator,
+    getOneAuthor
+  )
   .put(
-    verifyJWT,
-    allowTo("admin"),
-    handelSubmittedBy,
-    updateAuthorValidator,
+    [
+      allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), 
+      updateAuthorValidator,
+      canModifyResource(Author, "Author", "update"),
+    ],
     updateAuthor
   )
-  .delete(deleteAuthorValidator, deleteAuthor);
+  .delete(
+    [
+      allowTo(ROLES.ADMIN), // Allow only admins
+      deleteAuthorValidator,
+      canModifyResource(Author, "Author", "delete"),
+    ],
+    deleteAuthor
+  );
 
-router
-  .route("/:id/approve")
-  .put(updateAuthorValidator, adminHandelStatus, updateAuthor);
+// Route for approving an author by ID
+router.route("/:id/approve").put(
+  [
+    allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), 
+    updateAuthorValidator,
+    setAdminApprovedStatus,
+  ],
+  updateAuthor
+);
 
 module.exports = router;

@@ -2,7 +2,6 @@ const { Router } = require("express");
 const {
   createReview,
   getOneReview,
-  getAllReviews,
   updateReview,
   deleteReview,
 } = require("../../Controllers/reviewController");
@@ -14,19 +13,31 @@ const {
   deleteReviewValidator,
 } = require("../../Validators/reviewValidators");
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
-const { allowTo } = require("../../Middlewares/allowTo");
-const { statusFilter } = require("../../Middlewares/logeUserData");
+const {
+  canModifyReview,
+} = require("../../Middlewares/authorizationMiddlewares");
 
-const router = Router();
+const Review = require("../../Models/reviewModel");
+const { handelBookReview } = require("../../Middlewares/contextInjectors");
+
+const router = Router({mergeParams: true })
+
+router.use(verifyJWT);
 
 router
   .route("/")
-  .post(verifyJWT, allowTo("user"), createReviewValidator, createReview)
-  .get(statusFilter, getAllReviews);
+  .post(handelBookReview, createReviewValidator, createReview);
+
 router
   .route("/:id")
   .get(getReviewValidator, getOneReview)
-  .put(verifyJWT, allowTo("user"), updateReviewValidator, updateReview)
-  .delete(verifyJWT, allowTo("user"), deleteReviewValidator, deleteReview);
+  .put(
+    [updateReviewValidator, canModifyReview(Review, "Review", "update")],
+    updateReview
+  )
+  .delete(
+    [deleteReviewValidator, canModifyReview(Review, "Review", "delete")],
+    deleteReview
+  );
 
 module.exports = router;

@@ -1,6 +1,5 @@
 const { Router } = require("express");
 const {
-  createBook,
   getOneBook,
   getAllBooks,
   updateBook,
@@ -9,38 +8,69 @@ const {
 } = require("../../Controllers/bookController");
 
 const {
-  createBookValidator,
   getBookValidator,
   updateBookValidator,
   deleteBookValidator,
 } = require("../../Validators/bookValidators");
+
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
 const {
-  handelSubmittedBy,
-  adminHandelStatus,
-} = require("../../Middlewares/logeUserData");
+  setAdminApprovedStatus,
+} = require("../../Middlewares/contextInjectors");
+
+const {
+  canModifyResource,
+} = require("../../Middlewares/authorizationMiddlewares");
+
+const Book = require("../../Models/bookModel");
+
+const ROLES = require("../../Data/Roles");
 
 const router = Router();
-router.use(verifyJWT, allowTo("admin"));
 
-router
-  .route("/")
-  .post(handelSubmittedBy, adminHandelStatus, createBookValidator, createBook)
-  .get( getAllBooks);
+// Apply JWT verification globally
+router.use(verifyJWT);
 
+// Routes for fetching all books
+router.route("/").get(
+  allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), // Allow admins and contributors
+  getAllBooks
+);
+
+// Routes for fetching, updating, and deleting a specific book by ID
 router
   .route("/:id")
-  .get(getBookValidator, getOneBook)
+  .get(
+    allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), // Allow admins and contributors
+    getBookValidator,
+    getOneBook
+  )
   .put(
-    handelSubmittedBy,
-    updateBookValidator,
+    [
+      allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), // Restrict updates to admins and contributors
+      updateBookValidator,
+      canModifyResource(Book, "Book", "update"), // Authorization for updates
+    ],
     updateBook
   )
-  .delete(deleteBookValidator, deleteBook);
+  .delete(
+    [
+      allowTo(ROLES.ADMIN), // Restrict deletions to admins only
+      deleteBookValidator,
+      canModifyResource(Book, "Book", "delete"), // Authorization for deletions
+    ],
+    deleteBook
+  );
 
-router
-  .route("/:id/approve")
-  .put(updateBookValidator,adminHandelStatus, updateBook);
+// Route for approving a book by ID
+router.route("/:id/approve").put(
+  [
+    allowTo(ROLES.ADMIN, ROLES.CONTRIBUTOR), // Restrict approval to admins and contributors only
+    updateBookValidator,
+    setAdminApprovedStatus,
+  ],
+  approveBook
+);
 
 module.exports = router;

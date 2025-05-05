@@ -10,26 +10,29 @@ const {
   getBookValidator,
 } = require("../../Validators/bookValidators");
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
-const { allowTo } = require("../../Middlewares/allowTo");
 const {
   handelSubmittedBy,
   statusFilter,
-  userHandelStatus,
-} = require("../../Middlewares/logeUserData");
+  handleStatusByRole,
+} = require("../../Middlewares/contextInjectors");
 
-const router = Router();
+const reviewRoutes = require("./reviewRoutes"); 
+
+const router = Router(); 
 
 router
   .route("/")
   .post(
     verifyJWT,
-    allowTo("user"),
     handelSubmittedBy,
-    userHandelStatus,
+    handleStatusByRole,
     createBookValidator,
     createBook
   )
   .get(statusFilter, getAllBooks);
-router.route("/:id").get(statusFilter,getBookValidator, getOneBook);
+
+router.route("/:id").get(statusFilter, getBookValidator, getOneBook);
+
+router.use("/:bookId/reviews", reviewRoutes);
 
 module.exports = router;

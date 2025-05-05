@@ -3,63 +3,73 @@ const passport = require("passport");
 
 const router = express.Router();
 
-// Discord
+// *** Discord ***
 router.get("/discord", passport.authenticate("discord"));
 
 router.get(
   "/discord/callback",
   passport.authenticate("discord", { session: false }),
   function (req, res) {
-    res.cookie("jwt", req.user.refreshToken, {
-      httpOnly: true, //accessible only by web server
-      secure: process.env.ENV == "production",
-      sameSite: "None", //cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+    const isProduction = process.env.ENV === "production";
+
+    res.cookie("accessToken", req.user.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res
-      .status(201)
-      .json({ status: "success", data: req.user, token: req.user.accessToken });
+    const frontendCallbackUrl =
+      process.env.ENV === "production"
+        ? process.env.FRONTEND_URL
+        : "http://localhost:3000/";
+    res.redirect(frontendCallbackUrl);
   }
 );
 
-// GitHub
+// *** GitHub ***
 router.get("/github", passport.authenticate("github"));
 
 router.get(
   "/github/callback",
   passport.authenticate("github", { session: false }),
   function (req, res) {
-    res.cookie("jwt", req.user.refreshToken, {
-      httpOnly: true, //accessible only by web server
-      secure: process.env.ENV == "production",
-      sameSite: "None", //cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+    const isProduction = process.env.ENV === "production";
+    res.cookie("accessToken", req.user.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res
-      .status(201)
-      .json({ status: "success", data: req.user, token: req.user.accessToken });
+    const frontendCallbackUrl =
+      process.env.ENV === "production"
+        ? process.env.FRONTEND_URL
+        : "http://localhost:3000/";
+    res.redirect(frontendCallbackUrl);
   }
 );
 
-// Google
+// *** Google ***
 router.get("/google", passport.authenticate("google"));
 
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   function (req, res) {
-    res.cookie("jwt", req.user.refreshToken, {
-      httpOnly: true, //accessible only by web server
-      secure: process.env.ENV == "production",
-      sameSite: "None", //cross-site cookie
-      maxAge: 7 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rT
+    const isProduction = process.env.ENV === "production";
+    res.cookie("accessToken", req.user.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    res
-      .status(201)
-      .json({ status: "success", data: req.user, token: req.user.accessToken });
+    const frontendCallbackUrl =
+      process.env.ENV === "production"
+        ? process.env.FRONTEND_URL
+        : "http://localhost:3000/";
+    res.redirect(frontendCallbackUrl);
   }
 );
 

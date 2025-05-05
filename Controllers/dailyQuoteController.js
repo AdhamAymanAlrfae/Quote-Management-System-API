@@ -1,9 +1,9 @@
 const { CronJob } = require("cron");
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 const DailyQuote = require("../Models/dailyQuoteModel");
 const Quote = require("../Models/quoteModel");
 const CustomError = require("../Utils/CustomError");
-const { randomQuote } = require("./quoteController");
+const logger = require("../Utils/logger");
 
 exports.createDailyQuote = AsyncErrorHandler(async (req, res, next) => {
   const { quoteId, date } = req.body;
@@ -29,7 +29,6 @@ new CronJob(
         "quote"
       );
 
-
       if (!dailyQuote) {
         // Pick a single random quote if none are scheduled
         const quotes = await Quote.find({}, "_id");
@@ -43,14 +42,40 @@ new CronJob(
             quote: randomQuote,
           });
         } else {
-          console.log("No quotes available in the database!");
+          logger.error("No quotes available in the database!");
         }
       }
+      logger.info("Daily quote job executed successfully!");
     } catch (error) {
-      console.error("Error in cron job:", error);
+      logger.error("Error in cron job:", error);
     }
   }, // onTick
   null, // onComplete
   true, // start
   "UTC+2" // timeZone
 );
+
+exports.getTodayDailyQuote = AsyncErrorHandler(async (req, res, next) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const dailyQuote = await DailyQuote.findOne({ date: today }).populate({
+    path: "quote",
+    populate: [
+      { path: "author", select: "name" },
+      { path: "categories", select: "name" },
+      { path: "book", select: "title" },
+      { path: "submittedBy", select: "username" },
+    ],
+  });
+
+  if (!dailyQuote) {
+    return next(new CustomError("No daily quote found for today", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      dailyQuote,
+    },
+  });
+});

@@ -20,11 +20,11 @@ const {
 
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
-const { userFilter } = require("../../Middlewares/logeUserData");
+const { userFilter } = require("../../Middlewares/contextInjectors");
 
 const router = Router();
 
-router.use(verifyJWT, allowTo("user"));
+router.use(verifyJWT);
 
 router
   .route("/")
@@ -38,11 +38,9 @@ router
   .delete(deleteBoardValidator, deleteBoard);
 
 // Quote Management
-router.post("/:boardId/quotes", addQuotesValidator, addQuotesToBoard);
-router.delete(
-  "/:boardId/remove-quote/:quoteId",
-  removeQuoteFromBoardValidator,
-  removeQuoteFromBoard
-);
+router
+  .route("/:boardId/quotes")
+  .post(addQuotesValidator, addQuotesToBoard)
+  .delete(removeQuoteFromBoardValidator, removeQuoteFromBoard);
 
 module.exports = router;

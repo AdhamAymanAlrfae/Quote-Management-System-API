@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 
 const User = require("../Models/userModel");
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 const CustomError = require("../Utils/CustomError");
 const { createHash } = require("../Utils/createHash");
 const {
@@ -11,20 +11,77 @@ const {
 const jwt = require("jsonwebtoken");
 const emailSender = require("../Utils/emailSender");
 const { resetCodeHTML } = require("../Data/resetCodeHTML");
+const { registrationCodeHTML } = require("../Data/registrationCodeHTML");
+const sanitizeUser = require("../Utils/sanitizeUser");
+
+exports.login = AsyncErrorHandler(async (req, res, next) => {
+
+  const { password, username } = req.body;
+
+  const user = await User.findOne({ username: username }).exec();
+
+  if (!user) {
+    return next(
+      new CustomError("The Username or Password is Incorrect. Try again.", 401)
+    );
+  }
+
+  if (!user.password) {
+    return next(
+      new CustomError(
+        "This account was created using a provider. Use that provider to login.",
+        401
+      )
+    );
+  }
+
+  // Verify password if the user has one
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    return next(
+      new CustomError("The Username or Password is Incorrect. Try again.", 401)
+    );
+  }
+
+  // const refreshToken = jwtRefreshTokenGenerator({ userId: user._id });
+  const accessToken = jwtAccessTokenGenerator({
+    userId: user._id,
+    username: user.username,
+    role: user.role,
+  });
+
+  const isProduction = process.env.ENV === "production";
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "Lax" : "Lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+  // res.cookie("refresh_token", refreshToken, {
+  //   httpOnly: true,
+  //   secure: isProduction,
+  //   sameSite: isProduction ? "None" : "Lax",
+  //   maxAge: 7 * 24 * 60 * 60 * 1000,
+  // });
+
+  res.status(201).json({
+    status: "success",
+    data: sanitizeUser(user),
+  });
+});
 
 exports.register = AsyncErrorHandler(async (req, res, next) => {
-  delete req.body.role;
-  delete req.body.active;
-
   const user = await User.create({
-    ...req.body,
+    username: req.body.username,
+    email: req.body.email,
+    password: req.body.password,
     provider: "credential",
-    emailVerified: false,
+    isVerified: false,
   });
   await user.save();
 
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
-
   const hashedCode = createHash(verifyCode);
 
   const verifyExpiration =
@@ -32,58 +89,44 @@ exports.register = AsyncErrorHandler(async (req, res, next) => {
 
   user.verificationCode = hashedCode;
   user.verifyExpiration = verifyExpiration;
-  user.emailVerified = false;
+  user.isVerified = false;
 
   await user.save();
 
-  const htmlContent = resetCodeHTML(verifyCode);
+  const htmlContent = registrationCodeHTML(verifyCode);
 
-  await emailSender({
+  const success = await emailSender({
     subject: "Verify Email",
     userEmail: user.email,
     html: htmlContent,
-  }).catch(console.error);
+  });
 
-  res.status(201).json({ status: "success", message: "Email send successes" });
-});
-
-exports.login = AsyncErrorHandler(async (req, res, next) => {
-  const { password, username } = req.body;
-
-  const user = await User.findOne({ username: username }).exec();
-
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (!success) {
     return next(
-      new CustomError("The Username or Password is Incorrect. Try again.", 401)
+      new CustomError(
+        "Failed to send verification email. Please try again.",
+        500
+      )
     );
   }
-  const refreshToken = jwtRefreshTokenGenerator({ userId: user._id });
 
-  const accessToken = jwtAccessTokenGenerator({
-    userId: user._id,
-    username: user.username,
-    role: user.role,
+  res.status(201).json({
+    status: "success",
+    message: "Verification email sent successfully!",
   });
-
-  res.cookie("jwt", refreshToken, {
-    httpOnly: true,
-    secure: process.env.ENV == "production",
-    sameSite: "None",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-
-  res.status(201).json({ status: "success", data: user, token: accessToken });
 });
 
 exports.refresh = AsyncErrorHandler(async (req, res, next) => {
-  const cookies = req.cookies;
-  if (!cookies.jwt) {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (!cookies.refreshToken) {
     return next(
       new CustomError("Refresh token is missing or invalid. Please login again")
     );
   }
-  jwt.verify(
-    cookies.jwt,
+
+  await jwt.verify(
+    refreshToken,
     process.env.JWT_REFRESH_TOKEN,
     async (error, decode) => {
       if (error) return next(new CustomError(error.message, 403));
@@ -97,6 +140,14 @@ exports.refresh = AsyncErrorHandler(async (req, res, next) => {
         username: user.username,
         role: user.role,
       });
+      // const isProduction = process.env.ENV === "production";
+
+      // res.cookie("userRole", user.role, {
+      //   httpOnly: true,
+      //   secure: isProduction,
+      //   sameSite: isProduction ? "None" : "Lax",
+      //   maxAge: 7 * 24 * 60 * 60 * 1000,
+      // });
       res.status(200).json({ status: "success", token: accessToken });
     }
   );
@@ -104,14 +155,10 @@ exports.refresh = AsyncErrorHandler(async (req, res, next) => {
 
 exports.logout = AsyncErrorHandler(async (req, res, next) => {
   const cookies = req.cookies;
-  if (!cookies.jwt) {
+  if (!cookies.accessToken) {
     return next(new CustomError("You are already logged out", 400));
   }
-  res.clearCookie("jwt", {
-    httpOnly: true,
-    sameSite: "None",
-    secure: process.env.ENV == "production",
-  });
+  res.clearCookie("accessToken");
   res.json({ message: "Cookie cleared successfully" });
 });
 
@@ -134,18 +181,22 @@ exports.forgetPassword = AsyncErrorHandler(async (req, res, next) => {
 
   user.resetCode = hashedCode;
   user.resetCodeExpiration = resetCodeExpiration;
-  user.verified = false;
+  user.isVerified = false;
 
   await user.save();
 
   const htmlContent = resetCodeHTML(resetCode);
 
-  emailSender({
+  const success = await emailSender({
     subject: "Password Reset Code",
     userEmail: user.email,
     html: htmlContent,
-  }).catch(console.error);
-
+  });
+  if (!success) {
+    return next(
+      new CustomError("Failed to send email. Please try again.", 500)
+    );
+  }
   res.status(200).json({
     status: "success",
     message: "Reset link sent to email!",
@@ -169,7 +220,7 @@ exports.verifyResetCode = AsyncErrorHandler(async (req, res, next) => {
   user.password = req.body.newPassword;
   user.resetCode = undefined;
   user.resetCodeExpiration = undefined;
-  user.verified = true;
+  user.isVerified = true;
   await user.save();
 
   res.status(200).json({
@@ -187,7 +238,7 @@ exports.emailVerified = AsyncErrorHandler(async (req, res, next) => {
 
   if (!user) return next(new CustomError("User not found.", 404));
   if (user.activeEmail)
-    return next(new CustomError("Email is already verified.", 400));
+    return next(new CustomError("Email is already Verified.", 400));
   if (user.verificationCode !== hashedCode)
     return next(new CustomError("Invalid verification code.", 400));
   if (user.codeExpires < Date.now())
@@ -198,15 +249,15 @@ exports.emailVerified = AsyncErrorHandler(async (req, res, next) => {
       )
     );
 
-  // Update user status to verified
-  user.emailVerified = true;
+  // Update user status to isVerified
+  user.isVerified = true;
   user.verificationCode = null;
   user.verifyExpiration = null;
   await user.save();
 
   res.json({
     status: "success",
-    message: "Email verified successfully, you can login now!",
+    message: "Email Verified successfully, you can login now!",
   });
 });
 
@@ -215,28 +266,39 @@ exports.resendVerificationCode = AsyncErrorHandler(async (req, res, next) => {
   const user = await User.findOne({ email });
 
   if (!user) return next(new CustomError("User not found.", 404));
-  if (user.emailVerified)
-    return next(new CustomError("Email is already verified.", 400));
+  if (user.isVerified)
+    return next(new CustomError("Email is already Verified.", 400));
 
   const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedCode = createHash(verifyCode);
+
   const verifyExpiration =
     Date.now() + parseInt(process.env.VERIFY_CODE_EXPIRATION);
 
   user.verificationCode = hashedCode;
   user.verifyExpiration = verifyExpiration;
+
   await user.save();
 
   const htmlContent = resetCodeHTML(verifyCode);
 
-  await emailSender({
+  const success = await emailSender({
     subject: "Verify Email",
     userEmail: user.email,
     html: htmlContent,
-  }).catch(console.error);
+  });
+
+  if (!success) {
+    return next(
+      new CustomError(
+        "Failed to resend verification email. Please try again.",
+        500
+      )
+    );
+  }
 
   res.json({
     status: "success",
-    message: "Verification code sent successfully",
+    message: "Verification email sent successfully!",
   });
 });

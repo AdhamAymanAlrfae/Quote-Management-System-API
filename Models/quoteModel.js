@@ -23,7 +23,7 @@ const quoteSchema = new mongoose.Schema(
       {
         type: {
           type: String,
-          enum: ["video", "podcast", "song"],
+          enum: ["video", "podcast", "song", "article"],
         },
         link: {
           type: String,
@@ -61,7 +61,6 @@ const quoteSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    
   },
   { timestamps: true }
 );

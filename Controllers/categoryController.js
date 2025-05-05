@@ -6,6 +6,7 @@ const {
   getAllDoc,
   updateDoc,
   deleteDoc,
+  approveDoc
 } = require("./index");
 
 exports.createCategory = createDoc(Category);
@@ -17,3 +18,5 @@ exports.getAllCategories = getAllDoc(Category);
 exports.updateCategory = updateDoc(Category);
 
 exports.deleteCategory = deleteDoc(Category);
+
+exports.approveCategory = approveDoc(Category);

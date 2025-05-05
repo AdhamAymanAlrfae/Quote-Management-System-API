@@ -6,7 +6,6 @@ const {
   getAllDoc,
   updateDoc,
   deleteDoc,
-  approveDoc,
 } = require("./index");
 
 // POST Review
@@ -24,5 +23,3 @@ exports.updateReview = updateDoc(Review);
 // DELETE Review
 exports.deleteReview = deleteDoc(Review);
 
-// APPROVE Review
-exports.approveReview = approveDoc(Review);

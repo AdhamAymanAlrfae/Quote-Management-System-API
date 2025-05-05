@@ -1,4 +1,4 @@
-const AsyncErrorHandler = require("../Utils/AsyncErrorHandler");
+const AsyncErrorHandler = require("../Middlewares/AsyncErrorHandler");
 const CustomError = require("../Utils/CustomError");
 const APIFeatures = require("../Utils/apiFeatures");
 
@@ -29,20 +29,22 @@ exports.getOneDoc = (Model, populateOptions) => {
       return next(error);
     }
 
-    res.status(201).json({ status: "success", data: document });
+    res.status(200).json({ status: "success", data: document });
   });
 };
 
 // GET all documents
-
-exports.getAllDoc = (Model) => {
+exports.getAllDoc = (Model, populateOptions) => {
   return AsyncErrorHandler(async (req, res) => {
     const queryFilter = { ...req.userFilter, ...req.statusFilter };
 
-    // Initialize the APIFeatures class
-    const features = new APIFeatures(Model.find(queryFilter), req.query)
+    // Initialize the APIFeatures class    
+    const features = new APIFeatures(
+      Model.find(queryFilter).populate(populateOptions),
+      req.query
+    )
       .filter()
-      .search(["name", "description"]) // Adjust fields as necessary
+      .search(["name", "quote","title"]) 
       .sort()
       .limitFields()
       .paginate();

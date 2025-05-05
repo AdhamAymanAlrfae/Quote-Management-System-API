@@ -47,7 +47,7 @@ exports.createQuoteValidator = [
     .bail()
     .custom((mediaItems) =>
       mediaItems.every((item) =>
-        ["video", "podcast", "song"].includes(item.type)
+        ["video", "podcast", "song", "article"].includes(item.type)
       )
     )
     .withMessage(
@@ -88,9 +88,7 @@ exports.createQuoteValidator = [
   body("status")
     .optional()
     .isIn(["pending", "approved", "rejected"])
-    .withMessage("Status must be 'pending', 'approved', or 'rejected'")
-    ,
-
+    .withMessage("Status must be 'pending', 'approved', or 'rejected'"),
   body("submittedBy").isMongoId().withMessage("Invalid User ID format"),
   validatorMiddlewares,
 ];
@@ -136,7 +134,7 @@ exports.updateQuoteValidator = [
     .bail()
     .custom((mediaItems) =>
       mediaItems.every((item) =>
-        ["video", "podcast", "song"].includes(item.type)
+        ["video", "podcast", "song", "article"].includes(item.type)
       )
     )
     .withMessage(

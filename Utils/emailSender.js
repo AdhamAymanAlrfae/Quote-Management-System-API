@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const logger = require("./logger");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -8,15 +9,21 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-async function emailSender({subject, userEmail, html}) {
-  const info = await transporter.sendMail({
-    from: `"Quote app" <${process.env.EMAIL_USER_NAME}>`,
-    to: userEmail,
-    subject: subject,
-    html: html,
-  });
+async function emailSender({ subject, userEmail, html }) {
+  try {
+    await transporter.sendMail({
+      from: `"Quote app" <${process.env.EMAIL_USER_NAME}>`,
+      to: userEmail,
+      subject: subject,
+      html: html,
+    });
 
-  console.log("Message sent: %s", info);
+    logger.info(`Email sent successfully to ${userEmail}`);
+    return true; // Indicate success
+  } catch (error) {
+    logger.error(`Error sending email to ${userEmail}: ${error.message}`);
+    throw new Error(`Failed to send email to ${userEmail}`); // Propagate the error
+  }
 }
 
 module.exports = emailSender;

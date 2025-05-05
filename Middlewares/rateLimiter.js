@@ -12,7 +12,7 @@ const globalLimiter = rateLimit({
 // 🔐 2️⃣ Strict Limit for Login & Register (Prevent Brute Force)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Max 5 login attempts per 15 minutes
+  max: 15, // Max 15 login attempts per 15 minutes
   message: { error: "Too many login attempts. Try again later." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -45,4 +45,4 @@ const adminLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-module.exports = {globalLimiter,authLimiter}
+module.exports = { globalLimiter, authLimiter };

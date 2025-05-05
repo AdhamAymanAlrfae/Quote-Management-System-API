@@ -79,7 +79,7 @@ exports.createUserValidator = [
     .withMessage("Each board ID should be a valid ObjectId"),
   body("role")
     .optional()
-    .isIn(["admin", "manager", "user"])
+    .isIn(["admin", "contributor", "user", "creator"])
     .withMessage("Role is NOT valid"),
   validatorMiddlewares,
 ];
@@ -135,7 +135,7 @@ exports.updateUserValidator = [
     .withMessage("Each board ID should be a valid ObjectId"),
   body("role")
     .optional()
-    .isIn(["admin", "manager", "user"])
+    .isIn(["admin", "contributor", "user", "creator"])
     .withMessage("Role is NOT valid"),
   validatorMiddlewares,
 ];

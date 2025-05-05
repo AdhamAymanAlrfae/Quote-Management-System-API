@@ -23,5 +23,5 @@ exports.updateBook = updateDoc(Book);
 
 exports.deleteBook = deleteDoc(Book);
 
-exports.approveAuthor = approveDoc(Book);
+exports.approveBook = approveDoc(Book);
 

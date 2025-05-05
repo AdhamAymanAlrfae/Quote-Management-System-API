@@ -14,7 +14,6 @@ const logger = winston.createLogger({
 });
 
 if (process.env.ENV === "production") {
-  console.log("production log active");
   logger.add(
     new TelegramLogger({
       token: process.env.TELEGRAM_TOKEN,

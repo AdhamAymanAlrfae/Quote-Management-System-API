@@ -1,33 +1,74 @@
 const { Router } = require("express");
 const {
-  createUser,
   getOneUser,
   getAllUsers,
-  updateUser,
   deleteUser,
-  changePassword,
 } = require("../../Controllers/userController");
 
 const {
-  createUserValidator,
   getUserValidator,
-  updateUserValidator,
   deleteUserValidator,
-  changePasswordValidator,
+
 } = require("../../Validators/userValidators");
 
-const router = Router();
+const { verifyJWT } = require("../../Middlewares/verifyJWT");
+const { allowTo } = require("../../Middlewares/allowTo");
 
-router.route("/").post(createUserValidator, createUser).get(getAllUsers);
+const ROLE = require("../../Data/Roles");
+
+const {
+  changeUserRole,
+  updateUserStatus,
+  forceResetPassword,
+  toggleEmailVerification,
+} = require("../../Controllers/adminUserController");
+
+const {
+  changeUserRoleValidator,
+  updateUserStatusValidator,
+  forceResetPasswordValidator,
+  toggleEmailVerificationValidator,
+} = require("../../Validators/adminUserValidators");
+
+const router = Router();
+router.use(verifyJWT, allowTo(ROLE.ADMIN));
+
+/**
+ * 📦 Admin API Actions for Managing Users Safely (without invading privacy)
+ *
+ * ✅ Safe Actions:
+ * - Ban/Suspend/Reactivate user accounts
+ * - Add internal admin notes about user (visible only to admins)
+
+ * 📚 Example Admin Routes:
+ * - PATCH /admin/users/:id/status      → Suspend/Ban/Reactivate user
+ * - POST  /admin/users/:id/notes       → Add internal admin note
+ */
+
+
+router.route("/").get(getAllUsers);
 
 router
   .route("/:id")
   .get(getUserValidator, getOneUser)
-  .put(updateUserValidator, updateUser)
   .delete(deleteUserValidator, deleteUser);
 
-router.route("/change-password/:id").put(changePasswordValidator, changePassword)
 
+// Change user's role
+router.route("/:id/role").patch(changeUserRoleValidator, changeUserRole);
 
+// PATCH /admin/users/:id/status → Suspend/Ban/Reactivate user
+
+// router.route("/:id/status").patch(updateUserStatusValidator, updateUserStatus);
+
+// Send reset password email
+router
+  .route("/:id/force-reset-password")
+  .post(forceResetPasswordValidator, forceResetPassword);
+
+// PATCH /admin/users/:id/email-verification → Verify/Unverify email
+router
+  .route("/:id/email-verification")
+  .patch(toggleEmailVerificationValidator, toggleEmailVerification);
 
 module.exports = router;

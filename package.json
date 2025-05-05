@@ -20,6 +20,7 @@
   "homepage": "https://github.com/AdhamAymanAlrfae/Quote_API#readme",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cron": "^3.5.0",
@@ -28,6 +29,7 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.0",
+    "fuse.js": "^7.1.0",
     "helmet": "^8.0.0",
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",

@@ -13,17 +13,28 @@ const {
 const {
   registerValidator,
   loginValidator,
+  forgetPasswordValidator,
+  verifyResetCodeValidator,
+  verifyEmailValidator,
+  resendVerificationCodeValidator,
 } = require("../Validators/authValidators");
 
-const router = Router();
+// Route              | Should validate
+// forget-password    | Email field
+// verify-code        | Reset code and maybe email
+// verify-email       | Verification code and maybe user ID/email
+// resend-verify-code | Email
 
+const router = Router();
 router.route("/register").post(registerValidator, register);
 router.route("/login").post(loginValidator, login);
-router.route("/refresh").post(refresh);
+router.route("/refresh").get(refresh);
 router.route("/logout").post(logout);
-router.route("/forget-password").post(forgetPassword);
-router.route("/verify-code").post(verifyResetCode);
-router.route("/verify-email").post(emailVerified);
-router.route("/resend-verify-code").post(resendVerificationCode);
+router.route("/forget-password").post(forgetPasswordValidator, forgetPassword);
+router.route("/verify-code").post(verifyResetCodeValidator, verifyResetCode);
+router.route("/verify-email").post(verifyEmailValidator, emailVerified);
+router
+  .route("/resend-verify-code")
+  .post(resendVerificationCodeValidator, resendVerificationCode);
 
 module.exports = router;

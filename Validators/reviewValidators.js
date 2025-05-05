@@ -15,6 +15,8 @@ exports.createReviewValidator = [
     .withMessage("Invalid Book ID .")
     .bail()
     .custom(async (value, { req }) => {
+      
+      req.body.user = req.user.id;
       const book = await Book.findById(value);
       if (!book) {
         throw new customError(`No book found with ID: ${value}.`, 404);
@@ -28,7 +30,6 @@ exports.createReviewValidator = [
         throw new customError("You have already reviewed this book.", 400);
       }
 
-      req.body.user = req.user.id;
       return true;
     }),
 
@@ -55,18 +56,7 @@ exports.updateReviewValidator = [
     .isMongoId()
     .withMessage("Invalid Review ID.")
     .bail()
-    .custom(async (value, { req }) => {
-      const review = await Review.findById(value);
-      if (!review) {
-        throw new customError(`No review found with ID: ${value}.`, 404);
-      }
-
-      if (review.user._id.toString() !== req.user.id.toString()) {
-        throw new customError(`You are NOT allow to perform this action.`, 400);
-      }
-
-      return true;
-    }),
+   ,
 
   body("rating")
     .optional()
@@ -90,22 +80,7 @@ exports.deleteReviewValidator = [
     .isMongoId()
     .withMessage("Invalid Review ID.")
     .bail()
-    .custom(async (value, { req }) => {
-      const review = await Review.findById(value);
-      if (!review) {
-        throw new customError(`No review found with ID: ${value}.`, 404);
-      }
-      if (req.user.role === "user") {
-        if (review.user._id.toString() !== req.user.id.toString()) {
-          throw new customError(
-            `You are NOT allow to perform this action.`,
-            400
-          );
-        }
-      }
-
-      return true;
-    }),
+    ,
 
   validatorMiddlewares,
 ];

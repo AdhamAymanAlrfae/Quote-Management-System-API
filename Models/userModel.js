@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return this.provider === "credential"; 
+        return this.provider === "credential";
       },
     },
     submittedQuotes: [
@@ -44,7 +44,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ["admin", "manger", "user"],
+        values: ["admin", "contributor", "creator", "user"],
         message: "Role NOT valid.",
       },
       default: "user",
@@ -55,8 +55,7 @@ const userSchema = new mongoose.Schema(
     },
     resetCode: String,
     resetCodeExpiration: Date,
-    verified: Boolean,
-    emailVerified: {
+    isVerified: {
       type: Boolean,
       default: false,
     },

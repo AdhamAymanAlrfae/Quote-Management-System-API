@@ -13,7 +13,7 @@ const {
 
 const { verifyJWT } = require("../../Middlewares/verifyJWT");
 const { allowTo } = require("../../Middlewares/allowTo");
-const { handelUserId } = require("../../Middlewares/logeUserData");
+const { handelUserId } = require("../../Middlewares/contextInjectors");
 
 const router = Router();
 
